@@ -32,15 +32,27 @@ function generateMessages(results: AnalysisResult, mode: SummaryMode): string[] 
 
   if (mode === "critical") {
     const criticalTests = tests.filter((t) => t.status.includes("critical"));
-    if (criticalTests.length === 0) {
-      msgs.push("Great news — no critical findings in your report! All values are within safe ranges.");
+    const slightlyTests = tests.filter((t) => t.status.includes("slightly"));
+
+    if (criticalTests.length === 0 && slightlyTests.length === 0) {
+      msgs.push("Great news — no critical or borderline findings in your report! All values are within safe ranges.");
     } else {
-      msgs.push(`⚠️ You have ${criticalTests.length} critical findings that need immediate attention.`);
-      criticalTests.forEach((t) => {
-        msgs.push(
-          `🔴 ${t.name}: ${t.rawValue} — critically ${t.status.includes("high") ? "high" : "low"} (normal: ${t.normalRange}). See a doctor right away.`
-        );
-      });
+      if (criticalTests.length > 0) {
+        msgs.push(`⚠️ You have ${criticalTests.length} critical findings that need immediate attention.`);
+        criticalTests.forEach((t) => {
+          msgs.push(
+            `🔴 ${t.name}: ${t.rawValue} — critically ${t.status.includes("high") ? "high" : "low"} (normal: ${t.normalRange}). See a doctor right away.`
+          );
+        });
+      }
+      if (slightlyTests.length > 0) {
+        msgs.push(`🟡 You also have ${slightlyTests.length} borderline findings that are slightly outside normal range.`);
+        slightlyTests.forEach((t) => {
+          msgs.push(
+            `🟠 ${t.name}: ${t.rawValue} — slightly ${t.status.includes("high") ? "high" : "low"} (normal: ${t.normalRange}). Monitor and consider lifestyle changes.`
+          );
+        });
+      }
     }
     // Always include recommended actions in narration
     if (recommendedActions?.length) {
