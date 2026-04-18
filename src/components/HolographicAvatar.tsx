@@ -267,63 +267,41 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
     setIsSpeaking(false);
   }, []);
 
-  /* Google Translate TTS fallback — free, no API key, natural Indic voices.
-     Splits long text into <=180 char chunks and plays them sequentially. */
-  const speakViaGoogle = useCallback((text: string, langCode: LangCode, token: number) => {
-    const chunks: string[] = [];
-    const sentences = text.split(/(?<=[.?!।])\s+/);
-    let buf = "";
-    for (const s of sentences) {
-      if ((buf + " " + s).trim().length > 180) {
-        if (buf) chunks.push(buf.trim());
-        if (s.length > 180) {
-          for (let i = 0; i < s.length; i += 180) chunks.push(s.slice(i, i + 180));
-          buf = "";
-        } else buf = s;
-      } else {
-        buf = (buf + " " + s).trim();
-      }
-    }
-    if (buf) chunks.push(buf.trim());
-
-    const tl = langCode === "en" ? "en" : langCode;
-    let idx = 0;
-    const playNext = () => {
-      if (token !== speakTokenRef.current) return;
-      if (idx >= chunks.length) {
-        setIsSpeaking(false);
+  /* Wait for voices to load (Chrome loads them asynchronously) */
+  const getVoicesAsync = useCallback((): Promise<SpeechSynthesisVoice[]> => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined" || !window.speechSynthesis) {
+        resolve([]);
         return;
       }
-      const chunk = chunks[idx++];
-      const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(
-        chunk
-      )}&tl=${tl}&client=tw-ob`;
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onplay = () => {
-        if (token === speakTokenRef.current) setIsSpeaking(true);
-      };
-      audio.onended = () => playNext();
-      audio.onerror = () => {
-        if (token === speakTokenRef.current) setIsSpeaking(false);
-      };
-      audio.play().catch(() => {
-        if (token === speakTokenRef.current) setIsSpeaking(false);
-      });
-    };
-    playNext();
+      const synth = window.speechSynthesis;
+      let voices = synth.getVoices();
+      if (voices && voices.length > 0) {
+        resolve(voices);
+        return;
+      }
+      let attempts = 0;
+      const interval = setInterval(() => {
+        voices = synth.getVoices();
+        attempts++;
+        if (voices.length > 0 || attempts > 20) {
+          clearInterval(interval);
+          resolve(voices);
+        }
+      }, 100);
+    });
   }, []);
 
-  const speak = useCallback((text: string, langCode: LangCode) => {
+  const speak = useCallback(async (text: string, langCode: LangCode) => {
     if (typeof window === "undefined" || !text) return;
     const synth = window.speechSynthesis;
+    if (!synth) {
+      console.warn("[TTS] Speech synthesis not supported in this browser");
+      return;
+    }
     speakTokenRef.current += 1;
     const myToken = speakTokenRef.current;
-    try {
-      synth?.cancel();
-    } catch {
-      /* noop */
-    }
+    try { synth.cancel(); } catch { /* noop */ }
     if (audioRef.current) {
       try { audioRef.current.pause(); } catch { /* noop */ }
       audioRef.current = null;
@@ -333,53 +311,49 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
     if (!cleanText) return;
 
     const targetLang = getBcp47(langCode);
-    const langPrefix = targetLang.split("-")[0].toLowerCase();
-    const voices = synth?.getVoices() ?? [];
-    const nativeVoice =
-      voices.find((v) => v.lang?.toLowerCase() === targetLang.toLowerCase()) ||
-      voices.find((v) => v.lang?.toLowerCase().startsWith(langPrefix));
+    const langPrefix = langCode.toLowerCase();
 
-    // For Indic languages, prefer Google TTS unless device has a real native voice.
-    const isIndic = langCode !== "en";
-    if ((isIndic && !nativeVoice) || !synth) {
-      speakViaGoogle(cleanText, langCode, myToken);
-      return;
-    }
+    const voices = await getVoicesAsync();
+    if (myToken !== speakTokenRef.current) return;
+
+    const exactVoice = voices.find((v) => v.lang?.toLowerCase() === targetLang.toLowerCase());
+    const prefixVoice = voices.find((v) => v.lang?.toLowerCase().startsWith(langPrefix + "-"));
+    const langOnlyVoice = voices.find((v) => v.lang?.toLowerCase() === langPrefix);
+    const chosenVoice = exactVoice || prefixVoice || langOnlyVoice;
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 0.98;
-    utterance.pitch = 1.05;
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
     utterance.volume = 1;
     utterance.lang = targetLang;
-    if (nativeVoice) utterance.voice = nativeVoice;
-    else {
-      const en = voices.find((v) => /^en/i.test(v.lang));
-      if (en) utterance.voice = en;
+
+    if (chosenVoice) {
+      utterance.voice = chosenVoice;
+      console.info(`[TTS] Using voice "${chosenVoice.name}" (${chosenVoice.lang}) for ${langCode}`);
+    } else {
+      console.warn(
+        `[TTS] No installed voice matches ${targetLang}. Available:`,
+        Array.from(new Set(voices.map((v) => v.lang))).join(", ")
+      );
     }
 
-    utterance.onstart = () => {
-      if (myToken === speakTokenRef.current) setIsSpeaking(true);
-    };
-    utterance.onend = () => {
+    utterance.onstart = () => { if (myToken === speakTokenRef.current) setIsSpeaking(true); };
+    utterance.onend = () => { if (myToken === speakTokenRef.current) setIsSpeaking(false); };
+    utterance.onerror = (e) => {
+      console.warn("[TTS] Speech error:", e.error);
       if (myToken === speakTokenRef.current) setIsSpeaking(false);
-    };
-    utterance.onerror = () => {
-      if (myToken === speakTokenRef.current) {
-        speakViaGoogle(cleanText, langCode, speakTokenRef.current);
-      }
     };
     utteranceRef.current = utterance;
 
     setTimeout(() => {
-      if (myToken === speakTokenRef.current) {
-        try {
-          synth.speak(utterance);
-        } catch {
-          speakViaGoogle(cleanText, langCode, speakTokenRef.current);
-        }
+      if (myToken !== speakTokenRef.current) return;
+      try { synth.speak(utterance); }
+      catch (err) {
+        console.warn("[TTS] synth.speak threw:", err);
+        setIsSpeaking(false);
       }
-    }, 60);
-  }, [speakViaGoogle]);
+    }, 80);
+  }, [getVoicesAsync]);
 
   /* Cleanup any ongoing speech on unmount */
   useEffect(() => {
