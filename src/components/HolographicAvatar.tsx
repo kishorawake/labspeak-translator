@@ -14,6 +14,8 @@ import {
   Activity,
 } from "lucide-react";
 import aiDoctorAvatar from "@/assets/ai-doctor-avatar.png";
+import { AvatarFace } from "@/components/AvatarFace";
+import { useVisemeSync } from "@/hooks/useVisemeSync";
 import type { AnalysisResult } from "@/services/labAnalyzer";
 import { LANGUAGES, type LangCode, translate, translateAsync, getBcp47 } from "@/services/translate";
 import { useLang } from "@/contexts/LangContext";
