@@ -474,6 +474,7 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
               <HoloParticles count={8} />
             </div>
 
+            <div className="flex items-center gap-3 w-full">
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="font-display font-bold text-sm text-holo">Dr. AI</span>
