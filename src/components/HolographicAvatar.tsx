@@ -359,7 +359,7 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
         setIsSpeaking(false);
       }
     }, 80);
-  }, [getVoicesAsync]);
+  }, [getVoicesAsync, attachVisemes]);
 
   /* Cleanup any ongoing speech on unmount */
   useEffect(() => {
