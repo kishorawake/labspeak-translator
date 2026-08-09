@@ -513,7 +513,10 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
                 )}
               </button>
             </div>
+            </div>
           </div>
+
+
 
 
 
