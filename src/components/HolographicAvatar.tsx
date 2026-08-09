@@ -206,6 +206,8 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const speakTokenRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { viseme, attach: attachVisemes, reset: resetVisemes } = useVisemeSync();
+
 
   /* Projection animation on mount */
   useEffect(() => {
