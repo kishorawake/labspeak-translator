@@ -347,6 +347,7 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
       console.warn("[TTS] Speech error:", e.error);
       if (myToken === speakTokenRef.current) setIsSpeaking(false);
     };
+    attachVisemes(utterance, () => myToken === speakTokenRef.current);
     utteranceRef.current = utterance;
 
     setTimeout(() => {
