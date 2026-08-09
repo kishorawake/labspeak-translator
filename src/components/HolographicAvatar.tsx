@@ -268,8 +268,9 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
       audioRef.current = null;
     }
     utteranceRef.current = null;
+    resetVisemes();
     setIsSpeaking(false);
-  }, []);
+  }, [resetVisemes]);
 
   /* Wait for voices to load (Chrome loads them asynchronously) */
   const getVoicesAsync = useCallback((): Promise<SpeechSynthesisVoice[]> => {
