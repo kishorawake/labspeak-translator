@@ -515,6 +515,8 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
             </div>
           </div>
 
+
+
           {/* ─── Expanded Content ─── */}
           <AnimatePresence>
             {isExpanded && (
