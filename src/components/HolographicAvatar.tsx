@@ -424,7 +424,7 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
 
         <div className="relative z-10 p-5">
           {/* ─── Avatar Section ─── */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-col items-center gap-3 mb-4">
             <div className="relative">
               {/* Orbital rings */}
               <HoloRing />
@@ -433,32 +433,26 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
               {/* Avatar figure */}
               <motion.div
                 ref={avatarRef}
-                className={`relative w-16 h-16 rounded-full overflow-hidden holo-figure ${!isProjected ? "projecting" : ""}`}
+                className={`relative w-40 h-40 rounded-2xl overflow-hidden holo-figure ${!isProjected ? "projecting" : ""}`}
                 animate={
                   isSpeaking
-                    ? { y: [0, -3, 0, -2, 0], scale: [1, 1.02, 1] }
+                    ? { y: [0, -2, 0, -1.5, 0], scale: [1, 1.01, 1] }
                     : { y: [0, -4, 0] }
                 }
                 transition={
                   isSpeaking
-                    ? { duration: 0.5, repeat: Infinity }
+                    ? { duration: 0.9, repeat: Infinity, ease: "easeInOut" }
                     : { duration: 4, repeat: Infinity, ease: "easeInOut" }
                 }
               >
-                <img
+                <AvatarFace
                   src={aiDoctorAvatar}
-                  alt="Holographic AI Doctor"
-                  className="w-full h-full object-cover"
-                  style={{ filter: "saturate(0.7) brightness(1.2) hue-rotate(10deg)" }}
-                  width={512}
-                  height={512}
+                  alt="AI health assistant avatar"
+                  viseme={viseme}
+                  isSpeaking={isSpeaking}
+                  size={160}
+                  className="rounded-2xl"
                 />
-
-                {/* Hologram color tint */}
-                <div className="absolute inset-0 bg-holo/20 mix-blend-overlay" />
-
-                {/* Lip-sync overlay (active while speaking) */}
-                {isSpeaking && <div className="holo-lip-overlay" />}
 
                 {/* Scanlines on avatar */}
                 <div className="holo-scanlines" />
@@ -466,7 +460,7 @@ const HolographicAvatar = ({ results }: HolographicAvatarProps) => {
 
               {/* Status indicator */}
               <motion.div
-                className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-background"
+                className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background"
                 style={{ backgroundColor: "hsl(var(--holo-primary))" }}
                 animate={
                   isSpeaking
